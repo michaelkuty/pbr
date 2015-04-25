@@ -124,6 +124,7 @@ D1_D2_SETUP_ARGS = {
     "tests_require": ("backwards_compat", "tests_require"),
     "dependency_links": ("backwards_compat",),
     "include_package_data": ("backwards_compat",),
+    "extras_require": ("metadata", "extras_require",),
 }
 
 # setup() arguments that can have multiple values in setup.cfg
@@ -301,6 +302,30 @@ def setup_cfg_to_setup_kwargs(config):
                         finally:
                             description_file.close()
                     in_cfg_value = value
+            if arg == 'extras_require' and isinstance(config.get(arg), dict):
+                in_cfg_value = {}
+                args = config.get(arg)
+                per_redirect_deps = []
+                for extras_section, reqs in args.items():
+                    if reqs.startswith("-r"):
+                        redirects = filter(lambda x: not re.match(
+                            r'^\s*$', x), reqs.split("-r "))
+                        for redirect in redirects:
+                            with open(redirect.strip()) as redirect_reqs:
+                                pt = re.compile(r'\n|#')
+                                per_redirect_deps.extend(
+                                    [_VERSION_SPEC_RE.sub(r'\1\2',
+                                                          _req.strip())
+                                     for _req in redirect_reqs
+                                     if not pt.match(_req)])
+                        in_cfg_value.update(
+                            {extras_section: list(set(per_redirect_deps))})
+                    else:
+                        reqs = reqs.split("\n")
+                        in_cfg_value.update(
+                            {extras_section: [
+                                _VERSION_SPEC_RE.sub(r'\1\2', _req)
+                                for _req in reqs]})
             else:
                 continue
 
