@@ -152,13 +152,13 @@ def parse_requirements(requirements_files=None):
         # such as:
         # -e git://github.com/openstack/nova/master#egg=nova
         # -e git://github.com/openstack/nova/master#egg=nova-1.2.3
-        if re.match(r'\s*-e\s+', line):
-            line = re.sub(r'\s*-e\s+.*#egg=(.*)$', egg_fragment, line)
-        # such as:
         # http://github.com/openstack/nova/zipball/master#egg=nova
         # http://github.com/openstack/nova/zipball/master#egg=nova-1.2.3
-        elif re.match(r'\s*https?:', line):
-            line = re.sub(r'\s*https?:.*#egg=(.*)$', egg_fragment, line)
+        # git+[ssh]://github.com/openstack/nova/zipball/master#egg=nova-1.2.3
+        # hg+[ssh]://github.com/openstack/nova/zipball/master#egg=nova-1.2.3
+        # svn+[proto]://github.com/openstack/nova/zipball/master#egg=nova-1.2.3
+        if re.match(r'^\s*(-e\s+|https?|(git|svn|hg)\+)\S*:', line):
+            line = re.sub(r'^.*#egg=(.*)$', egg_fragment, line)
         # -f lines are for index locations, and don't get used here
         elif re.match(r'\s*-f\s+', line):
             line = None
@@ -187,8 +187,9 @@ def parse_dependency_links(requirements_files=None):
         if re.match(r'\s*-[ef]\s+', line):
             dependency_links.append(re.sub(r'\s*-[ef]\s+', '', line))
         # lines that are only urls can go in unmolested
-        elif re.match(r'\s*https?:', line):
+        elif re.match(r'^\s*(https?|(git|svn|hg)\+)\S*:', line):
             dependency_links.append(line)
+    
     return dependency_links
 
 

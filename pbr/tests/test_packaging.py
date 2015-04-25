@@ -415,5 +415,46 @@ class TestVersions(base.BaseTestCase):
         self.assertEqual('1.3.0.0a1', version)
 
 
+class TestRepositoryURLDependencies(base.BaseTestCase):
+
+    def setUp(self):
+        super(TestRepositoryURLDependencies, self).setUp()
+        self.requirements = os.path.join(tempfile.mkdtemp(),
+                                         'requirements.txt')
+        with open(self.requirements, 'w') as f:
+            f.write('\n'.join([
+                '-e git+git://git.project.org/Proj#egg=Proj1',
+                'git+https://git.project.org/Proj#egg=Proj2-0.0.1',
+                '-e git+ssh://git.project.org/Proj#egg=Proj3',
+                'svn+svn://svn.project.org/svn/Proj#egg=Proj4-0.0.2',
+                '-e svn+http://svn.project.org/svn/Proj/trunk@2019#egg=Proj5',
+                'hg+http://hg.project.org/Proj@da39a3ee5e6b#egg=Proj-0.0.3',
+                '-e hg+http://hg.project.org/Proj@2019#egg=Proj',
+                'hg+http://hg.project.org/Proj@v1.0#egg=Proj-0.0.4',
+                '-e hg+http://hg.project.org/Proj@special_feature#egg=Proj',
+                'pypi-proj1', 'pypi-proj2']))
+
+    def test_parse_repo_url_requirements(self):
+        result = packaging.parse_requirements([self.requirements])
+        self.assertEqual(result, ['Proj1', 'Proj2>=0.0.1', 'Proj3',
+                                  'Proj4>=0.0.2', 'Proj5', 'Proj>=0.0.3',
+                                  'Proj', 'Proj>=0.0.4', 'Proj',
+                                  'pypi-proj1', 'pypi-proj2'])
+
+    def test_parse_repo_url_dependency_links(self):
+        result = packaging.parse_dependency_links([self.requirements])
+        self.assertEqual(
+            result, [
+                'git+git://git.project.org/Proj#egg=Proj1',
+                'git+https://git.project.org/Proj#egg=Proj2-0.0.1',
+                'git+ssh://git.project.org/Proj#egg=Proj3',
+                'svn+svn://svn.project.org/svn/Proj#egg=Proj4-0.0.2',
+                'svn+http://svn.project.org/svn/Proj/trunk@2019#egg=Proj5',
+                'hg+http://hg.project.org/Proj@da39a3ee5e6b#egg=Proj-0.0.3',
+                'hg+http://hg.project.org/Proj@2019#egg=Proj',
+                'hg+http://hg.project.org/Proj@v1.0#egg=Proj-0.0.4',
+                'hg+http://hg.project.org/Proj@special_feature#egg=Proj'])
+
+
 def load_tests(loader, in_tests, pattern):
     return testscenarios.load_tests_apply_scenarios(loader, in_tests, pattern)
